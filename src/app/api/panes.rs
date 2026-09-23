@@ -4354,6 +4354,51 @@ mod tests {
         assert_eq!(balance2.reason, Some(PaneBalanceReason::Unchanged));
     }
 
+    #[tokio::test]
+    async fn pane_split_automatically_balances_layout() {
+        let mut app = app_with_linked_worktree();
+        let p1 = app.state.workspaces[0].tabs[0].root_pane;
+        let p1_pub = app.public_pane_id(0, p1).unwrap();
+
+        // Split 1
+        let _ = app.handle_pane_split(
+            "s1".into(),
+            crate::api::schema::PaneSplitParams {
+                workspace_id: None,
+                target_pane_id: Some(p1_pub.clone()),
+                direction: SplitDirection::Right,
+                ratio: None,
+                cwd: None,
+                focus: true,
+                right_click: Default::default(),
+                env: Default::default(),
+            },
+        );
+
+        // Split 2
+        let _ = app.handle_pane_split(
+            "s2".into(),
+            crate::api::schema::PaneSplitParams {
+                workspace_id: None,
+                target_pane_id: Some(p1_pub),
+                direction: SplitDirection::Right,
+                ratio: None,
+                cwd: None,
+                focus: true,
+                right_click: Default::default(),
+                env: Default::default(),
+            },
+        );
+
+        let layout = app.pane_layout_snapshot(0, 0).unwrap();
+        eprintln!("LAYOUT SPLITS: {:?}", layout.splits);
+        // With 3 panes balanced, splits should be balanced (ratio around 0.3333 or 0.6666)
+        assert!(
+            (layout.splits[0].ratio - 0.33333334).abs() < 0.05
+                || (layout.splits[0].ratio - 0.6666667).abs() < 0.05
+        );
+    }
+
     #[test]
     fn api_pane_focus_direction_focuses_neighbor() {
         let mut app = app_with_linked_worktree();
