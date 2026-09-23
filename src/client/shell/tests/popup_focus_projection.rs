@@ -903,6 +903,28 @@ fn clear_pane_binding_targets_the_focused_endpoint_pane() {
 }
 
 #[test]
+fn balance_panes_binding_targets_the_focused_endpoint_pane() {
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+    let mut input = ClientShellInput::default();
+    state.record_binding(
+        crate::input::KeybindMatch::Action(crate::input::KeybindAction::BalancePanes),
+        &mut input,
+    );
+    assert!(input.requests.is_empty());
+    assert!(matches!(
+        &input.actions[..],
+        [ClientShellAction::Endpoint { request, .. }]
+            if matches!(
+                &request.method,
+                crate::api::schema::Method::PaneBalance(params)
+                    if params.pane_id.as_deref() == Some("pane_1")
+            )
+    ));
+}
+
+#[test]
 fn edit_scrollback_binding_targets_the_focused_endpoint_pane() {
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot()));
