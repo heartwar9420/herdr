@@ -11,6 +11,7 @@ use crate::api::schema::{
     PaneProcessInfoProcess, PaneReadParams, PaneReadResult, PaneReleaseAgentParams,
     PaneRenameParams, PaneReportAgentParams, PaneReportAgentSessionParams,
     PaneReportMetadataParams, PaneResizeParams, PaneResizeReason, PaneResizeResult,
+    PaneBalanceParams, PaneBalanceReason, PaneBalanceResult,
     PaneScrollParams, PaneSelectionReadParams, PaneSendInputParams, PaneSendKeysParams,
     PaneSendTextParams, PaneSplitParams, PaneSwapParams, PaneSwapReason, PaneSwapResult,
     PaneTarget, PaneTextPoint, PaneTextRange, PaneZoomMode, PaneZoomParams, PaneZoomReason,
@@ -756,6 +757,52 @@ impl App {
                 resize: PaneResizeResult {
                     changed,
                     reason: (!changed).then_some(PaneResizeReason::Unchanged),
+                    pane_id: pane_public_id,
+                    focused_pane_id,
+                    layout,
+                },
+            },
+        )
+    }
+
+    pub(super) fn handle_pane_balance(&mut self, id: String, params: PaneBalanceParams) -> String {
+        let Some((ws_idx, pane_id)) = self.resolve_optional_pane(params.pane_id.as_deref()) else {
+            return encode_error(id, "pane_not_found", "pane not found");
+        };
+        let Some(tab_idx) = self.state.workspaces[ws_idx].find_tab_index_for_pane(pane_id) else {
+            return pane_not_found(
+                id,
+                &self.public_pane_id(ws_idx, pane_id).unwrap_or_default(),
+            );
+        };
+        let Some(pane_public_id) = self.public_pane_id(ws_idx, pane_id) else {
+            return encode_error(id, "pane_not_found", "pane not found");
+        };
+
+        let changed = self
+            .state
+            .workspaces
+            .get_mut(ws_idx)
+            .and_then(|ws| ws.tabs.get_mut(tab_idx))
+            .is_some_and(|tab| tab.layout.balance_panes());
+        if changed {
+            self.schedule_session_save();
+        }
+
+        let Some(layout) = self.pane_layout_snapshot(ws_idx, tab_idx) else {
+            return encode_error(id, "pane_layout_unavailable", "pane layout unavailable");
+        };
+        let focused_pane_id = layout.focused_pane_id.clone();
+        if changed {
+            self.emit_layout_updated_snapshot(layout.clone());
+        }
+
+        encode_success(
+            id,
+            ResponseResult::PaneBalance {
+                balance: PaneBalanceResult {
+                    changed,
+                    reason: (!changed).then_some(PaneBalanceReason::Unchanged),
                     pane_id: pane_public_id,
                     focused_pane_id,
                     layout,
@@ -4112,6 +4159,61 @@ mod tests {
                 if layout.tab_id == app.public_tab_id(0, 0).unwrap()
                     && (layout.splits[0].ratio - 0.6).abs() < f32::EPSILON
         ));
+    }
+
+    #[test]
+    fn api_pane_balance_equalizes_panes() {
+        let mut app = app_with_linked_worktree();
+        let root = app.state.workspaces[0].tabs[0].root_pane;
+        let _right = app.state.workspaces[0].test_split(ratatui::layout::Direction::Horizontal);
+        app.state.workspaces[0].tabs[0].layout.focus_pane(root);
+        crate::ui::compute_view_with_runtime_registry(
+            &mut app.state,
+            &crate::terminal::TerminalRuntimeRegistry::new(),
+            ratatui::layout::Rect::new(0, 0, 100, 20),
+        );
+        let root_public = app.public_pane_id(0, root).unwrap();
+
+        // First resize to make it uneven (0.6)
+        app.handle_pane_resize(
+            "resize".into(),
+            crate::api::schema::PaneResizeParams {
+                pane_id: Some(root_public.clone()),
+                direction: PaneDirection::Right,
+                amount: Some(0.1),
+            },
+        );
+
+        // Now balance the panes
+        let response = app.handle_pane_balance(
+            "req".into(),
+            crate::api::schema::PaneBalanceParams {
+                pane_id: Some(root_public.clone()),
+            },
+        );
+
+        let success: SuccessResponse = serde_json::from_str(&response).unwrap();
+        let ResponseResult::PaneBalance { balance } = success.result else {
+            panic!("expected pane balance response");
+        };
+        assert!(balance.changed);
+        assert_eq!(balance.reason, None);
+        assert_eq!(balance.pane_id, root_public);
+        assert!((balance.layout.splits[0].ratio - 0.5).abs() < f32::EPSILON);
+
+        // Second balance should be unchanged no-op
+        let response2 = app.handle_pane_balance(
+            "req2".into(),
+            crate::api::schema::PaneBalanceParams {
+                pane_id: Some(root_public),
+            },
+        );
+        let success2: SuccessResponse = serde_json::from_str(&response2).unwrap();
+        let ResponseResult::PaneBalance { balance: balance2 } = success2.result else {
+            panic!("expected pane balance response");
+        };
+        assert!(!balance2.changed);
+        assert_eq!(balance2.reason, Some(PaneBalanceReason::Unchanged));
     }
 
     #[test]

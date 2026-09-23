@@ -2437,6 +2437,17 @@
           ],
           "type": "string"
         },
+        "PaneBalanceParams": {
+          "properties": {
+            "pane_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
         "PaneClearAgentAuthorityParams": {
           "properties": {
             "pane_id": {
@@ -5728,6 +5739,22 @@
         {
           "properties": {
             "method": {
+              "const": "pane.balance",
+              "type": "string"
+            },
+            "params": {
+              "$ref": "#/schemas/request/$defs/PaneBalanceParams"
+            }
+          },
+          "required": [
+            "method",
+            "params"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "method": {
               "const": "pane.scroll",
               "type": "string"
             },
@@ -7916,6 +7943,45 @@
           ],
           "type": "string"
         },
+        "PaneBalanceReason": {
+          "enum": [
+            "unchanged"
+          ],
+          "type": "string"
+        },
+        "PaneBalanceResult": {
+          "properties": {
+            "changed": {
+              "type": "boolean"
+            },
+            "focused_pane_id": {
+              "type": "string"
+            },
+            "layout": {
+              "$ref": "#/schemas/success_response/$defs/PaneLayoutSnapshot"
+            },
+            "pane_id": {
+              "type": "string"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/schemas/success_response/$defs/PaneBalanceReason"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "changed",
+            "pane_id",
+            "focused_pane_id",
+            "layout"
+          ],
+          "type": "object"
+        },
         "PaneDirection": {
           "enum": [
             "left",
@@ -9911,6 +9977,22 @@
               "required": [
                 "type",
                 "resize"
+              ],
+              "type": "object"
+            },
+            {
+              "properties": {
+                "balance": {
+                  "$ref": "#/schemas/success_response/$defs/PaneBalanceResult"
+                },
+                "type": {
+                  "const": "pane_balance",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "balance"
               ],
               "type": "object"
             },

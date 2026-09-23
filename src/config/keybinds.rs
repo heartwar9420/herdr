@@ -364,6 +364,7 @@ pub struct Keybinds {
     pub split_horizontal: ActionKeybinds,
     pub close_pane: ActionKeybinds,
     pub zoom: ActionKeybinds,
+    pub balance_panes: ActionKeybinds,
     pub resize_mode: ActionKeybinds,
     pub resize_pane_left: ActionKeybinds,
     pub resize_pane_down: ActionKeybinds,
@@ -533,6 +534,7 @@ impl Config {
             split_horizontal: empty_action!(),
             close_pane: empty_action!(),
             zoom: empty_action!(),
+            balance_panes: empty_action!(),
             resize_mode: empty_action!(),
             resize_pane_left: empty_action!(),
             resize_pane_down: empty_action!(),
@@ -681,6 +683,7 @@ impl Config {
             apply_action!(keybinds.split_horizontal, split_horizontal, source);
             apply_action!(keybinds.close_pane, close_pane, source);
             apply_action!(keybinds.zoom, zoom, source);
+            apply_action!(keybinds.balance_panes, balance_panes, source);
             apply_action!(keybinds.resize_mode, resize_mode, source);
             apply_action!(keybinds.resize_pane_left, resize_pane_left, source);
             apply_action!(keybinds.resize_pane_down, resize_pane_down, source);
@@ -1268,6 +1271,7 @@ pub(crate) fn parse_key_combo(s: &str) -> Option<KeyCombo> {
         "up" => KeyCode::Up,
         "down" => KeyCode::Down,
         "minus" => KeyCode::Char('-'),
+        "equal" => KeyCode::Char('='),
         "comma" => KeyCode::Char(','),
         "period" => KeyCode::Char('.'),
         "slash" => KeyCode::Char('/'),
@@ -1551,6 +1555,10 @@ prefix = "ö"
         assert_eq!(
             parse_key_combo("minus"),
             Some((KeyCode::Char('-'), KeyModifiers::empty()))
+        );
+        assert_eq!(
+            parse_key_combo("equal"),
+            Some((KeyCode::Char('='), KeyModifiers::empty()))
         );
         assert_eq!(
             parse_key_combo("comma"),
