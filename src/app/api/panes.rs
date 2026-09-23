@@ -118,6 +118,11 @@ impl App {
                 crate::api::schema::PaneRightClickTarget::Pane
             );
         }
+        if let Some(ws) = self.state.workspaces.get_mut(ws_idx) {
+            if let Some(tab) = ws.tabs.get_mut(target_tab_idx) {
+                tab.layout.balance_panes();
+            }
+        }
         if params.focus {
             self.state.switch_workspace_tab(ws_idx, target_tab_idx);
             self.state
