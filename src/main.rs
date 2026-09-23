@@ -184,7 +184,7 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # split_horizontal = "prefix+minus"
 # close_pane = "prefix+x"
 # zoom = "prefix+z"       # legacy alias: fullscreen
-# balance_panes = "prefix+="
+# balance_panes = "prefix+shift+e"
 # resize_mode = "prefix+r"
 # resize_pane_left = ""   # optional, e.g. "ctrl+shift+alt+left" resizes without entering resize mode
 # resize_pane_down = ""   # optional, e.g. "ctrl+shift+alt+down"

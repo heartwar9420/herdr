@@ -442,7 +442,7 @@ pub struct KeysConfig {
     /// Toggle zoom for the focused pane. Default: "prefix+z"
     #[serde(alias = "fullscreen")]
     pub zoom: BindingConfig,
-    /// Balance pane sizes evenly in the active tab. Default: "prefix+="
+    /// Balance pane sizes evenly in the active tab. Default: "prefix+shift+e"
     pub balance_panes: BindingConfig,
     /// Enter resize mode. Default: "prefix+r"
     pub resize_mode: BindingConfig,
@@ -1148,7 +1148,7 @@ impl Default for KeysConfig {
             split_horizontal: BindingConfig::one("prefix+minus"),
             close_pane: BindingConfig::one("prefix+x"),
             zoom: BindingConfig::one("prefix+z"),
-            balance_panes: BindingConfig::one("prefix+="),
+            balance_panes: BindingConfig::one("prefix+shift+e"),
             resize_mode: BindingConfig::one("prefix+r"),
             resize_pane_left: BindingConfig::empty(),
             resize_pane_down: BindingConfig::empty(),
