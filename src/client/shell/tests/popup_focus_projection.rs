@@ -925,6 +925,29 @@ fn balance_panes_binding_targets_the_focused_endpoint_pane() {
 }
 
 #[test]
+fn split_vertical_binding_splits_and_balances_panes() {
+    let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
+    state.set_snapshot(Box::new(snapshot()));
+    state.set_pane_surface(surface());
+    let mut input = ClientShellInput::default();
+    state.record_binding(
+        crate::input::KeybindMatch::Action(crate::input::KeybindAction::SplitVertical),
+        &mut input,
+    );
+    assert_eq!(input.actions.len(), 2);
+    assert!(matches!(
+        &input.actions[0],
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::PaneSplit(_))
+    ));
+    assert!(matches!(
+        &input.actions[1],
+        ClientShellAction::Endpoint { request, .. }
+            if matches!(&request.method, crate::api::schema::Method::PaneBalance(_))
+    ));
+}
+
+#[test]
 fn edit_scrollback_binding_targets_the_focused_endpoint_pane() {
     let mut state = ClientShellState::new(ClientShellConfig::from_config(&Config::default()));
     state.set_snapshot(Box::new(snapshot()));

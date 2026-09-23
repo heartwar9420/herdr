@@ -172,6 +172,17 @@ impl ClientShellState {
                 if self.handle_endpoint_navigation(action, outcome) {
                     return;
                 }
+                if action == crate::input::KeybindAction::SplitVertical {
+                    if let Some(method) = self.endpoint_method_for_action(action) {
+                        self.push_endpoint_method(method, outcome);
+                    }
+                    if let Some(balance_method) =
+                        self.endpoint_method_for_action(crate::input::KeybindAction::BalancePanes)
+                    {
+                        self.push_endpoint_method(balance_method, outcome);
+                    }
+                    return;
+                }
                 if let Some(method) = self.endpoint_method_for_action(action) {
                     self.push_endpoint_method(method, outcome);
                     return;
