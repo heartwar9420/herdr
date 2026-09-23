@@ -510,6 +510,11 @@ fn pane_command() -> Command {
                 .args(current_pane_args()),
         )
         .subcommand(
+            Command::new("balance")
+                .about("Balance pane sizes evenly in the current tab")
+                .args(current_pane_args()),
+        )
+        .subcommand(
             Command::new("zoom")
                 .about("Toggle or set pane zoom")
                 .arg(Arg::new("pane_id").value_name("PANE_ID"))

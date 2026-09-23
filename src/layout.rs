@@ -341,6 +341,12 @@ impl TileLayout {
         split_ratios(&self.root) != before
     }
 
+    /// Recursively balance split ratios across the layout tree so panes share
+    /// available space equally in each split direction (similar to tmux select-layout even).
+    pub fn balance_panes(&mut self) -> bool {
+        balance_node(&mut self.root)
+    }
+
     pub fn pane_ids(&self) -> Vec<PaneId> {
         let mut ids = Vec::new();
         collect_ids(&self.root, &mut ids);
@@ -694,6 +700,52 @@ fn get_ratio_at(node: &Node, path: &[bool]) -> Option<f32> {
         }
     } else {
         None
+    }
+}
+
+fn count_in_direction(node: &Node, dir: Direction) -> usize {
+    match node {
+        Node::Pane(_) => 1,
+        Node::Split {
+            direction,
+            first,
+            second,
+            ..
+        } => {
+            if *direction == dir {
+                count_in_direction(first, dir) + count_in_direction(second, dir)
+            } else {
+                count_in_direction(first, dir).max(count_in_direction(second, dir))
+            }
+        }
+    }
+}
+
+fn balance_node(node: &mut Node) -> bool {
+    match node {
+        Node::Pane(_) => false,
+        Node::Split {
+            direction,
+            ratio,
+            first,
+            second,
+        } => {
+            let dir = *direction;
+            let count_first = count_in_direction(first, dir);
+            let count_second = count_in_direction(second, dir);
+            let total = count_first + count_second;
+            let mut changed = false;
+            if total > 0 {
+                let target_ratio = valid_split_ratio(count_first as f32 / total as f32);
+                if (*ratio - target_ratio).abs() > 0.001 {
+                    *ratio = target_ratio;
+                    changed = true;
+                }
+            }
+            let first_changed = balance_node(first);
+            let second_changed = balance_node(second);
+            changed || first_changed || second_changed
+        }
     }
 }
 
@@ -1345,4 +1397,47 @@ mod tests {
         assert!(layout.close_focused());
         assert_eq!(layout.focused(), pane(2));
     }
+
+    #[test]
+    fn balance_panes_single_pane_is_noop() {
+        let (mut layout, _) = TileLayout::new();
+        assert!(!layout.balance_panes());
+    }
+
+    #[test]
+    fn balance_panes_equalizes_horizontal_splits() {
+        let (mut layout, p1) = TileLayout::new();
+        let p2 = layout.split_focused(Direction::Horizontal);
+        let p3 = layout.split_focused(Direction::Horizontal);
+        assert!(layout.balance_panes());
+
+        let area = Rect::new(0, 0, 90, 30);
+        let panes = layout.panes(area);
+        let w1 = panes.iter().find(|p| p.id == p1).unwrap().rect.width;
+        let w2 = panes.iter().find(|p| p.id == p2).unwrap().rect.width;
+        let w3 = panes.iter().find(|p| p.id == p3).unwrap().rect.width;
+
+        assert_eq!(w1, 30);
+        assert_eq!(w2, 30);
+        assert_eq!(w3, 30);
+    }
+
+    #[test]
+    fn balance_panes_equalizes_vertical_splits() {
+        let (mut layout, p1) = TileLayout::new();
+        let p2 = layout.split_focused(Direction::Vertical);
+        let p3 = layout.split_focused(Direction::Vertical);
+        assert!(layout.balance_panes());
+
+        let area = Rect::new(0, 0, 80, 90);
+        let panes = layout.panes(area);
+        let h1 = panes.iter().find(|p| p.id == p1).unwrap().rect.height;
+        let h2 = panes.iter().find(|p| p.id == p2).unwrap().rect.height;
+        let h3 = panes.iter().find(|p| p.id == p3).unwrap().rect.height;
+
+        assert_eq!(h1, 30);
+        assert_eq!(h2, 30);
+        assert_eq!(h3, 30);
+    }
 }
+

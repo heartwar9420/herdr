@@ -165,6 +165,8 @@ pub enum Method {
     PaneFocusDirection(PaneFocusDirectionParams),
     #[serde(rename = "pane.resize")]
     PaneResize(PaneResizeParams),
+    #[serde(rename = "pane.balance")]
+    PaneBalance(PaneBalanceParams),
     #[serde(rename = "pane.scroll")]
     PaneScroll(PaneScrollParams),
     #[serde(rename = "pane.clear")]

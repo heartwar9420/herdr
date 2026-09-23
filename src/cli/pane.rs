@@ -3,7 +3,7 @@ use crate::api::schema::{
     PaneFocusDirectionParams, PaneInputSetParams, PaneLayoutParams, PaneListParams,
     PaneMoveDestination, PaneMoveParams, PaneNeighborParams, PaneProcessInfoParams, PaneReadParams,
     PaneReleaseAgentParams, PaneRenameParams, PaneReportAgentParams, PaneReportAgentSessionParams,
-    PaneReportMetadataParams, PaneResizeParams, PaneRightClickTarget, PaneSendInputParams,
+    PaneReportMetadataParams, PaneResizeParams, PaneBalanceParams, PaneRightClickTarget, PaneSendInputParams,
     PaneSendKeysParams, PaneSendTextParams, PaneSplitParams, PaneSwapParams, PaneTarget,
     PaneWaitForOutputParams, PaneZoomMode, PaneZoomParams, ReadFormat, ReadSource, Request,
     SplitDirection,
@@ -25,6 +25,7 @@ pub(super) fn run_pane_command(args: &[String]) -> std::io::Result<i32> {
         "edges" => pane_edges(&args[1..]),
         "focus" => pane_focus(&args[1..]),
         "resize" => pane_resize(&args[1..]),
+        "balance" => pane_balance(&args[1..]),
         "zoom" => pane_zoom(&args[1..]),
         "read" => pane_read(&args[1..]),
         "rename" => pane_rename(&args[1..]),
@@ -220,6 +221,18 @@ fn pane_resize(args: &[String]) -> std::io::Result<i32> {
     };
 
     super::runtime::pane_resize(params)
+}
+
+fn pane_balance(args: &[String]) -> std::io::Result<i32> {
+    let pane_id = match parse_optional_current_pane_args_from_env(args) {
+        Ok(pane_id) => pane_id,
+        Err(message) => {
+            eprintln!("{message}");
+            return Ok(2);
+        }
+    };
+
+    super::runtime::pane_balance(PaneBalanceParams { pane_id })
 }
 
 fn parse_optional_current_pane_args_from_env(args: &[String]) -> Result<Option<String>, String> {
@@ -1682,6 +1695,7 @@ fn print_pane_help() {
     eprintln!(
         "  herdr pane resize --direction left|right|up|down [--amount FLOAT] [--pane ID|--current]"
     );
+    eprintln!("  herdr pane balance [--pane ID|--current]");
     eprintln!("  herdr pane zoom [<pane_id>|--pane ID|--current] [--toggle|--on|--off]");
     eprintln!("  herdr pane rename <pane_id> <label>|--clear");
     eprintln!("  herdr pane read <pane_id> [--source visible|recent|recent-unwrapped] [--lines N] [--format text|ansi] [--ansi]");
